@@ -14,7 +14,10 @@ fn main() {
         .define("TOOLS", "OFF")
         .define("USE_Z3", "OFF")
         .define("USE_CVC4", "OFF")
-        .define("Boost_USE_STATIC_LIBS", "ON");
+        .define("Boost_USE_STATIC_LIBS", "ON")
+        .define("BOOST_ROOT", "/usr/include/boost")
+        .define("BOOST_INCLUDEDIR","/usr/include/boost")
+        .define("Boost_DEBUG", "1");
 
     if Command::new("sccache").arg("--version").output().is_ok() {
         cmake
