@@ -48,12 +48,14 @@ pub fn compile(input: &str) -> String {
     solidity_compile(input, None, std::ptr::null_mut())
 }
 
-/// Compile using a valid JSON input with read callback and return a JSON output.
+/// Compile using a valid JSON input with read callback and return a JSON
+/// output.
 pub fn compile_with_callback<F>(input: &str, read_callback: F) -> String
 where
     F: FnMut(&str, &str) -> Result<String, String>,
 {
-    // TODO: It should be possible to turn the box into a pointer without the into_raw-from_raw dance
+    // TODO: It should be possible to turn the box into a pointer without the
+    // into_raw-from_raw dance
     let c_context = Box::into_raw(Box::new(read_callback));
     let result = solidity_compile(input, Some(call_callback::<F>), c_context as *mut ());
     unsafe { Box::from_raw(c_context) };
@@ -67,19 +69,15 @@ fn solidity_compile(
 ) -> String {
     let input_cstr: CString =
         CString::new(input).expect("CString failed (input contains a 0 byte?)");
+
     let _lock = SOLC_MUTEX
         .lock()
         .expect("Could not acquire exclusive access to the compiler");
 
     unsafe {
-        let ptr = native::solidity_compile(
-            input_cstr.as_ptr() as *const i8,
-            callback,
-            c_context as *mut _,
-        );
+        let ptr = native::solidity_compile(input_cstr.as_ptr(), callback, c_context as *mut _);
         let output_cstr = CStr::from_ptr(ptr).to_string_lossy().into_owned();
         native::solidity_free(ptr);
-        native::solidity_reset();
         output_cstr
     }
 }
@@ -109,7 +107,8 @@ unsafe fn copy_result_to_solidity_memory(result: &str, target: *mut *mut c_char)
     let contents_cstr: CString = CString::new(result).expect("Could not turn result into CString");
     let contents_size = contents_cstr.as_bytes_with_nul().len();
 
-    // The solidity_reset() call in solidity_compile takes care of freeing the memory alloc'd here
+    // The solidity_reset() call in solidity_compile takes care of freeing the
+    // memory alloc'd here
     let contents_ptr: *mut c_char = native::solidity_alloc(contents_size as u64);
     ptr::copy_nonoverlapping(contents_cstr.as_ptr(), contents_ptr, contents_size);
     (*target) = contents_ptr;
